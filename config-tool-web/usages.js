@@ -191,6 +191,8 @@ const usages = {
 
         "0x000c00e9": { 'name': 'Volume up', 'class': 'media' },
         "0x000c00ea": { 'name': 'Volume down', 'class': 'media' },
+        "0x000c006f": { 'name': 'Brightness up', 'class': 'media' },
+        "0x000c0070": { 'name': 'Brightness down', 'class': 'media' },
         "0x000c00e2": { 'name': 'Mute', 'class': 'media' },
         "0x000b002f": { 'name': 'Mic mute', 'class': 'media' },
         "0x000c00cd": { 'name': 'Play/pause', 'class': 'media' },
@@ -419,6 +421,8 @@ const usages = {
 
         "0x000c00e9": { 'name': 'Volume up', 'class': 'media' },
         "0x000c00ea": { 'name': 'Volume down', 'class': 'media' },
+        "0x000c006f": { 'name': 'Brightness up', 'class': 'media' },
+        "0x000c0070": { 'name': 'Brightness down', 'class': 'media' },
         "0x000c00e2": { 'name': 'Mute', 'class': 'media' },
         "0x000b002f": { 'name': 'Mic mute', 'class': 'media' },
         "0x000c00cd": { 'name': 'Play/pause', 'class': 'media' },
