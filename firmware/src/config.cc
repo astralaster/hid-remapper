@@ -2,6 +2,8 @@
 #include <cstring>
 #include <unordered_set>
 
+#include <hardware/watchdog.h>
+
 #include "config.h"
 #include "crc.h"
 #include "globals.h"
@@ -941,6 +943,10 @@ uint16_t handle_get_report1(uint8_t report_id, uint8_t* buffer, uint16_t reqlen)
                     return 0;
                 }
                 returned->return_code = persist_config_return_code;
+                // The response is about to be sent. Reboot shortly after so
+                // the device recovers cleanly even if the USB stack wedged
+                // during the flash write. The config is already persisted.
+                watchdog_reboot(0, 0, 500);
                 break;
             }
             default:

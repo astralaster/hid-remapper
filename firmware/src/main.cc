@@ -11,6 +11,7 @@
 #endif
 #include <hardware/flash.h>
 #include <hardware/gpio.h>
+#include <hardware/watchdog.h>
 #include <pico/bootrom.h>
 #include <pico/mutex.h>
 #include <pico/platform.h>
@@ -192,6 +193,12 @@ bool read_adc() {
 #endif
 
 void do_persist_config(uint8_t* buffer) {
+    // Dead man's switch: if anything below wedges the USB stack, reset the
+    // chip after a few seconds. The config is already in the flash buffer at
+    // this point and the actual erase/program takes only tens of ms.
+    // Once the host has read the persist response, config.cc shortens this
+    // to a quick reboot so the device comes back clean without a replug.
+    watchdog_reboot(0, 0, 3000);
 #ifdef REMAPPER_PIO_USB_HOST
     // Stop the host port's endpoint transactions (SOFs keep running) while
     // the flash is unavailable. Without this, a device connected to the PIO
