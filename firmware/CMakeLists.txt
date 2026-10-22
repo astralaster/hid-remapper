@@ -17,6 +17,26 @@ project(remapper)
 
 pico_sdk_init()
 
+# Apply local Pico-PIO-USB fixes (host pause around flash writes) without
+# changing the submodule pointer. The patch is idempotent.
+set(PIO_USB_PAUSE_PATCH "${CMAKE_CURRENT_LIST_DIR}/patches/pio_usb_pause.patch")
+if(EXISTS "${PIO_USB_PAUSE_PATCH}" AND EXISTS "${PICO_PIO_USB_PATH}/.git")
+    execute_process(
+        COMMAND git -C "${PICO_PIO_USB_PATH}" apply --reverse --check "${PIO_USB_PAUSE_PATCH}"
+        RESULT_VARIABLE PIO_USB_PATCH_ALREADY_APPLIED
+        OUTPUT_QUIET ERROR_QUIET)
+    if(NOT PIO_USB_PATCH_ALREADY_APPLIED EQUAL 0)
+        execute_process(
+            COMMAND git -C "${PICO_PIO_USB_PATH}" apply "${PIO_USB_PAUSE_PATCH}"
+            RESULT_VARIABLE PIO_USB_PATCH_RESULT
+            ERROR_VARIABLE PIO_USB_PATCH_ERROR)
+        if(NOT PIO_USB_PATCH_RESULT EQUAL 0)
+            message(FATAL_ERROR "Failed to apply PIO USB pause patch:\n${PIO_USB_PATCH_ERROR}")
+        endif()
+        message(STATUS "Applied PIO USB pause patch")
+    endif()
+endif()
+
 check_and_add_pico_pio_usb_support()
 
 add_compile_options(-Wall)
@@ -59,6 +79,7 @@ target_include_directories(remapper PRIVATE
     src/tusb_config_both
     ${PICO_PIO_USB_PATH}
 )
+target_compile_definitions(remapper PRIVATE REMAPPER_PIO_USB_HOST=1)
 
 target_link_libraries(remapper
     pico_stdlib

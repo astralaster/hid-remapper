@@ -1,0 +1,57 @@
+diff --git a/src/pio_usb.h b/src/pio_usb.h
+index cb0e2c0..a6e8dc1 100644
+--- a/src/pio_usb.h
++++ b/src/pio_usb.h
+@@ -14,6 +14,8 @@ int pio_usb_host_add_port(uint8_t pin_dp, PIO_USB_PINOUT pinout);
+ void pio_usb_host_task(void);
+ void pio_usb_host_stop(void);
+ void pio_usb_host_restart(void);
++void pio_usb_host_pause(void);
++void pio_usb_host_resume(void);
+ uint32_t pio_usb_host_get_frame_number(void);
+ 
+ // Call this every 1ms when skip_alarm_pool is true.
+diff --git a/src/pio_usb_host.c b/src/pio_usb_host.c
+index 4bf5fb7..7c2c764 100644
+--- a/src/pio_usb_host.c
++++ b/src/pio_usb_host.c
+@@ -29,6 +29,7 @@ static bool timer_active;
+ 
+ static volatile bool cancel_timer_flag;
+ static volatile bool start_timer_flag;
++static volatile bool host_paused;
+ static __unused uint32_t int_stat;
+ 
+ static bool sof_timer(repeating_timer_t *_rt);
+@@ -102,6 +103,14 @@ void pio_usb_host_restart(void) {
+   }
+ }
+ 
++void pio_usb_host_pause(void) {
++  host_paused = true;
++}
++
++void pio_usb_host_resume(void) {
++  host_paused = false;
++}
++
+ //--------------------------------------------------------------------+
+ // Bus functions
+ //--------------------------------------------------------------------+
+@@ -240,6 +249,16 @@ void __not_in_flash_func(pio_usb_host_frame)(void) {
+     pio_usb_bus_usb_transfer(pp, sof_packet, 4);
+   }
+ 
++  // Keep sending SOFs so connected devices stay awake, but don't touch any
++  // endpoint transactions while the caller is busy (e.g. writing flash).
++  if (host_paused) {
++    sof_count++;
++    uint16_t const sof_count_11b = sof_count & 0x7ff;
++    sof_packet[2] = sof_count_11b & 0xff;
++    sof_packet[3] = (calc_usb_crc5(sof_count_11b) << 3) | (sof_count_11b >> 8);
++    return;
++  }
++
+   // Carry out all queued endpoint transaction
+   for (int root_idx = 0; root_idx < PIO_USB_ROOT_PORT_CNT; root_idx++) {
+     root_port_t *root = PIO_USB_ROOT_PORT(root_idx);

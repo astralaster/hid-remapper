@@ -26,6 +26,9 @@
 #include "mcp4651.h"
 #include "our_descriptor.h"
 #include "platform.h"
+#ifdef REMAPPER_PIO_USB_HOST
+#include "pio_usb.h"
+#endif
 #include "remapper.h"
 #include "tick.h"
 
@@ -189,6 +192,12 @@ bool read_adc() {
 #endif
 
 void do_persist_config(uint8_t* buffer) {
+#ifdef REMAPPER_PIO_USB_HOST
+    // Stop the host port's endpoint transactions (SOFs keep running) while
+    // the flash is unavailable. Without this, a device connected to the PIO
+    // USB port can wedge the host stack during erase/program.
+    pio_usb_host_pause();
+#endif
 #if !PICO_COPY_TO_RAM
     uint32_t ints = save_and_disable_interrupts();
 #endif
@@ -196,6 +205,9 @@ void do_persist_config(uint8_t* buffer) {
     flash_range_program(CONFIG_OFFSET_IN_FLASH, buffer, PERSISTED_CONFIG_SIZE);
 #if !PICO_COPY_TO_RAM
     restore_interrupts(ints);
+#endif
+#ifdef REMAPPER_PIO_USB_HOST
+    pio_usb_host_resume();
 #endif
 }
 
